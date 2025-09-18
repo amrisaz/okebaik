@@ -86,3 +86,51 @@ exports.searchGlobal = async (req, res) => {
 };
 
 
+exports.exportExcel = async (req, res) => {
+  const { q } = req.query; // keyword pencarian
+  try {
+    let rows;
+    if (q && q.trim() !== "") {
+      // export semua hasil pencarian (tanpa limit)
+      [rows] = await ManualPo.searchGlobal(q, 100000, 0); 
+    } else {
+      // export semua data (tanpa limit)
+      [rows] = await ManualPo.getAll(100000, 0);
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("ManualPO");
+
+    worksheet.columns = [
+      { header: "ID", key: "id", width: 10 },
+      { header: "Date", key: "date", width: 15 },
+      { header: "Manual PO", key: "manual_po", width: 20 },
+      { header: "Buyer", key: "buyer", width: 20 },
+      { header: "Supplier", key: "supp", width: 20 },
+      { header: "Project", key: "project", width: 20 },
+      { header: "Date PO", key: "date_po", width: 15 },
+      { header: "System PO", key: "system_po", width: 20 },
+      { header: "PIC", key: "pic", width: 15 },
+      { header: "Remark", key: "remark", width: 30 }
+    ];
+
+    rows.forEach(row => worksheet.addRow(row));
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=manual_po.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
